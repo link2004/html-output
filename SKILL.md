@@ -1,45 +1,45 @@
 ---
 name: html-output
-description: 内容を「ぱっと見で全体像が掴める視覚優位なHTML」にして個人S3に公開し、共有URLを返す。Use when (1)「HTML化して」「リンクで渡して」「ブラウザで見れる形に」 (2)「s3に上げて」 (3) 表・コード・比較・グラフ・タイムライン・図解が必要で Markdown では伝わりにくい時 (4) 後で見返す中長文出力時。
+description: Turn the current conversation content into a visually scannable HTML page, publish it to a personal S3 bucket, and return a short shareable URL. Use when (1) the user asks to "make this an HTML / link / browser-viewable page" (in any language, e.g. "HTML化して", "リンクで渡して", "ブラウザで見れる形に"), (2) "upload to s3" / "s3に上げて" is requested, (3) the content has tables, code, comparisons, charts, timelines, or diagrams that Markdown chat can't convey well, (4) the output is something the user wants to come back to later.
 ---
 
 # html-output
 
-`$ARGUMENTS` または直前の会話文脈にある内容を、**視覚要素優位のHTML** にして publish.sh で S3 公開、URL を返す。
+Take the content from `$ARGUMENTS` or the immediate conversation context, render it as a **visually-priority HTML page**, publish it via `publish.sh` to S3, and return the URL.
 
-## 設計原則
+## Design principles
 
-「Markdown を `<p>` に置き換えただけ」を絶対やらない。**HTMLの強みを活かす**:
+Never produce "Markdown translated into `<p>` tags." **Use what HTML is good at**:
 
-- **5秒ルール**: ページ開いて5秒で「何の話で結論は何か」が掴めること
-- **視覚階層 (size+color+weight)**: 重要度の高い情報ほど大きく・色付きで・太く。地の文に埋めない
-- **数値は巨大カード化**: 主要メトリクスは 30-50px の数字で並べる
-- **比較は side-by-side**: 表より grid でカード化、ヘアラインで色分け
-- **フロー・関係は SVG**: inline `<svg>` で手書き。CDN（Chart.js / Mermaid）は重いので原則使わない
-- **数値の比較はバーチャート**: CSS の横バー + 緑→赤グラデで視覚化
-- **構造はツリー**: ファイル構成等はモノスペース・インデント・色分け
-- **結論は callout**: 色付き左ボーダーボックスで目立たせる
-- **アンチパターン**: `<p>` の壁 / 全部同じ文字サイズ / 装飾だけのSVG / 絵文字の連打 / 「念のため」CDN
+- **5-second rule**: in 5 seconds the reader should grasp "what topic, what conclusion."
+- **Visual hierarchy (size + color + weight)**: more important info → larger, bolder, with color. Don't bury it in body text.
+- **Headline numbers as huge cards**: primary metrics in 30–50px digits.
+- **Comparisons → side-by-side cards**: prefer grids of cards (with hairline color accents) over tables.
+- **Flow / relationships → inline SVG**: hand-draw diagrams. Avoid CDN libraries (Chart.js, Mermaid) — heavy and slow to load.
+- **Numeric comparisons → bar chart**: simple CSS horizontal bars with a green→red gradient.
+- **Structures → tree view**: monospace, indented, color-keyed.
+- **Conclusions → callouts**: tinted box with a colored left border.
+- **Anti-patterns**: walls of `<p>` / uniformly-sized text / decorative-only SVGs / emoji spam / "just-in-case" CDN includes.
 
-CSS / HTML の具体は **AI の創造性に任せる**。コンポーネントコードを定型化しない（毎回同じ見た目になるとつまらない）。
+The actual CSS / HTML is **left to the AI's creativity** — don't templatize components, every output should fit its content.
 
-## カラー基調
+## Color palette
 
-**常に白ベース（ライト）固定**。ダークモード自動切替（`prefers-color-scheme: dark`）は **入れない**。
+**Always light (white background)**. Do not auto-switch to dark mode (no `prefers-color-scheme: dark` block).
 
-- 背景: `#ffffff`
-- 本文: `#111827` 系（やや濃いグレー）
-- 補助情報: `#6b7280`（ミュート）
-- 罫線: `#e5e7eb`（薄い）
-- カード/コードブロック背景: `#fafafa` 〜 `#f3f4f6`（うっすらグレー）
-- 主アクセント: **オレンジ（#d97706）** / アクセント薄背景: `#fef3c7`
-- 状態色: 緑 `#16a34a` / 黄 `#f59e0b` / 赤 `#dc2626`
+- background: `#ffffff`
+- body text: `#111827` (near-black slate)
+- secondary: `#6b7280` (muted gray)
+- borders: `#e5e7eb` (very light gray)
+- card / code background: `#fafafa` to `#f3f4f6`
+- primary accent: **orange `#d97706`** / soft accent bg: `#fef3c7`
+- semantic: green `#16a34a` / yellow `#f59e0b` / red `#dc2626`
 
-## 言語
+## Language
 
-入力（brief・会話）の言語をそのまま使う。**勝手に翻訳しない**。
+Match the input language exactly — if the brief / conversation is in Japanese, write the HTML in Japanese; if English, English. **Do not translate.**
 
-## 公開ステップ
+## Publish step
 
 ```bash
 bash ~/.claude/skills/html-output/scripts/publish.sh <<'HTML'
@@ -51,32 +51,32 @@ bash ~/.claude/skills/html-output/scripts/publish.sh <<'HTML'
 HTML
 ```
 
-引数:
+Argument matrix:
 
-| 引数 | 挙動 | 用途 |
+| Argument | Behavior | Use |
 |---|---|---|
-| なし | `<timestamp>-<8hex>.html` 新規 | 一時HTML |
-| `<name>` | `<slug>-<8hex>.html` 新規 | 永続ドキュメント（wiki用） |
-| `<key>.html` | 既存key上書き | 既存ドキュメント更新 |
+| (none) | new `<timestamp>-<8hex>.html` | one-shot, ephemeral |
+| `<name>` | new `<slug>-<8hex>.html` | persistent doc (wiki-style) |
+| `<key>.html` | overwrite existing key | update existing doc, URL stays the same |
 
-URL を返す時はコードフェンスで囲む（Markdownの `&` 解釈で壊れないため）。
+Return the URL inside a code fence (Markdown's `&` interpretation can otherwise truncate it).
 
-## wiki cross-link
+## Wiki cross-link
 
-既存ドキュメントを別ドキュメントから参照したい時:
+To reference an existing document from a new one:
 
 ```bash
 bash ~/.claude/skills/html-output/scripts/list.sh <name-prefix>
-# → 該当URL一覧
+# → list of matching URLs
 ```
 
-得たURLを `<a href="...">` で埋め込む。
+Embed those URLs in the new page with `<a href="...">`.
 
-## ファイル構成
+## File layout
 
-| パス | 役割 |
+| Path | Role |
 |---|---|
-| `scripts/publish.sh` | upload + 公開URL返却（stdin pipe） |
-| `scripts/list.sh` | 既存docs検索（wiki cross-link用） |
-| `config.json` / `config.example.json` | bucket/profile 設定 |
-| `references/setup.md` | 初回セットアップ |
+| `scripts/publish.sh` | upload + return public URL (stdin pipe) |
+| `scripts/list.sh` | search existing docs (for wiki cross-linking) |
+| `config.json` / `config.example.json` | bucket / profile config |
+| `references/setup.md` | one-time AWS bootstrap |

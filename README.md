@@ -12,7 +12,9 @@ When Claude Code outputs long reports, comparisons, or how-to guides directly in
 https://<your-bucket>.s3.<region>.amazonaws.com/setup-guide-4f0e78eb.html
 ```
 
-URLs are unguessable (32-bit random suffix) and the bucket grants public-read on objects only — no listing — so you control distribution by sharing the URL.
+URLs use a 32-bit random suffix, which combined with S3's rate limits is **practically unguessable** for casual attackers (~14 days of sustained brute force at the S3 limit, just to enumerate one timestamp window). The bucket grants public-read on objects only — no listing — so distribution is controlled by who you share the URL with.
+
+> Want stronger guarantees? Bump the suffix to 16 hex (64-bit) by changing one line in `scripts/publish.sh`: `secrets.token_hex(4)` → `secrets.token_hex(8)`. URL grows by 8 chars, brute force becomes physically infeasible.
 
 ## Three URL modes
 
@@ -24,24 +26,37 @@ URLs are unguessable (32-bit random suffix) and the bucket grants public-read on
 
 Names auto-slug (lowercase, alphanumeric+hyphens) so you can pass `"Setup Guide"` and get `setup-guide-<8hex>.html`.
 
-## Quick start
+## Install
+
+### Recommended: via [`skills`](https://github.com/vercel-labs/skills) CLI
 
 ```bash
-# 1. Clone into your global skills directory
-git clone https://github.com/link2004/html-output ~/.claude/skills/html-output
+npx skills add link2004/html-output --global
+```
 
-# 2. Copy the config template and fill in your AWS info
+That fetches this repo into `~/.claude/skills/html-output/` (symlink by default). For other agents (Cursor, Cline, etc.), pass `--agent <name>` — see the upstream docs.
+
+### Manual
+
+```bash
+git clone https://github.com/link2004/html-output ~/.claude/skills/html-output
+```
+
+### Then, one-time AWS setup
+
+```bash
+# 1. Fill in your bucket / region / profile / IAM user
 cp ~/.claude/skills/html-output/config.example.json ~/.claude/skills/html-output/config.json
 $EDITOR ~/.claude/skills/html-output/config.json
 
-# 3. Run the one-time S3 + IAM setup (see references/setup.md)
-# Creates a bucket, an IAM user with object-RW on that bucket only, and an access key.
-
-# 4. Try it from Claude Code
-/html-output
+# 2. Bootstrap S3 + IAM (creates a bucket, an IAM user scoped to that bucket only,
+#    and an access key). See:
+open ~/.claude/skills/html-output/references/setup.md
 ```
 
-In Claude Code, just say "HTML化して" / "publish this as HTML" / "make it browseable" and the skill triggers.
+### Trigger from Claude Code
+
+Type `/html-output` directly, or just say "HTML化して" / "publish this as HTML" / "make it browseable" — the skill description catches those phrases automatically.
 
 ## What it does (concretely)
 
